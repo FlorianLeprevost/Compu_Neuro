@@ -1,0 +1,6 @@
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}%
+\contentsline {section}{\numberline {2}Reinforcement learning}{1}{section.2}%
+\contentsline {section}{\numberline {3}Decision Making}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Policy}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Drift diffusion model and evidence accumulation}{8}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Conclusion}{10}{section.4}%
