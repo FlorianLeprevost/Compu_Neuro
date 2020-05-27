@@ -15,6 +15,7 @@ from scipy.io import loadmat
 from scipy import signal
 from scipy.integrate import odeint
 from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D  
 
 #%%
 plt.style.use('ggplot')
@@ -103,11 +104,13 @@ def generate():
 
 
 # x = np.linspace(0, 2000, 2000)
+
 def f_per_pap(time_ms):
-    ft = lambda x : (np.sin(x*np.pi/100)*1.3 \
-        + np.sin(x*2*np.pi/100)*1.3/2   \
-            + np.sin(x*3*np.pi/100)*1.3/6  \
-                +np.sin(x*4*np.pi/100)*1.3/3)/1.5
+    freq=1/200
+    ft = lambda x : (np.sin(x*np.pi*freq)*1.3 \
+        + np.sin(x*2*np.pi*freq)*1.3/2   \
+            + np.sin(x*3*np.pi*freq)*1.3/6  \
+                +np.sin(x*4*np.pi*freq)*1.3/3)/1.5
     ts= ft(np.array(range(time_ms)))
     return ts
     
@@ -754,11 +757,13 @@ colors = ['navy', 'turquoise', 'darkorange']
 lw = 2
 
 
-plt.scatter(pca_w[:,0], pca_w[:,1], c=np.linspace(0,10,239), alpha=.8, lw=lw)
+plt.scatter(pca_w[:,0], pca_w[:,1], c=np.linspace(0,10,989), alpha=.8, lw=lw)
 plt.legend(loc='best', shadow=False, scatterpoints=1)
 plt.title('PCA of IRIS dataset')
 
-
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,989))
 
 cumul=list()
 for i in range(n_comp):
@@ -767,15 +772,22 @@ plt.plot(cumul)
 
 #%% PCA activity post learning
 #%% PCA
-n_comp=100
+n_comp=10
 
-test=np.squeeze(r)
+r_array=np.squeeze(np.array(r))
 pca=PCA(n_components=n_comp)
-pca_test =pca.fit(test).transform(test)
-print('explained variance ratio (first two components): %s'
-      % str(pca.explained_variance_ratio_))
+pca_full =pca.fit(r_array[8000:10000,:])
+pca_compo = pca_full.components_
 
-plt.figure()
-colors = ['navy', 'turquoise', 'darkorange']
-lw = 2
+projections = list()
+for i in range(n_comp):
+    projections.append(np.dot(pca_compo[i],r_array[8000:10000,:].T))
+    plt.plot(projections[i], alpha=.3)
 
+
+plt.plot(sum(projections))
+
+cumul=list()
+for i in range(n_comp):
+    cumul.append(sum(pca_full.explained_variance_ratio_[:i])*100)
+plt.plot(cumul)
