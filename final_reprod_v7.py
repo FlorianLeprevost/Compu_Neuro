@@ -16,6 +16,7 @@ from scipy import signal
 from scipy.integrate import odeint
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D  
+from scipy import stats
 
 #%%
 plt.style.use('ggplot')
@@ -712,50 +713,22 @@ pca_full =pca.fit(test)
 pca_compo = pca_full.components_
 pca_w =pca.fit(test).transform(test)
 
-# plt.figure()
-# colors = ['navy', 'turquoise', 'darkorange']
-# lw = 2
-# plt.scatter(pca_w[:,0], pca_w[:,1], c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
-# proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
-# proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
-# plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
-# plt.legend(loc='best', shadow=False, scatterpoints=1)
-# plt.title('PCA of IRIS dataset')
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,len(pca_w[:,1])))
-# ax.scatter(pca_w[:,2],pca_w[:,1], pca_w[:,3],c=np.linspace(0,100,len(pca_w[:,1])))
-
 cumul=list()
 for i in range(n_comp):
     cumul.append(sum(pca_full.explained_variance_ratio_[:i])*100)
 plt.plot(cumul)
 
-# loop
-plt.subplot(111, projection='3d')
-plt.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,len(pca_w[:,1])))
-
-plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
-for i in range(3):
-    w_array, r_array =simul_weight_pca(5000,100,4000, f_per_pap)
-    proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
-    proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
-    plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
-plt.ylabel
-
-#%%
+#%% PCA w several
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-# Tweaking display region and labels
-ax.plot(pca_w[:,0],pca_w[:,1], pca_w[:,40], lw=4)#,c=np.linspace(0,100,len(pca_w[:,1])))
-
-for i in range(1):
+for i in range(2):
     w_array, r_array =simul_weight_pca(5000,100,4000, f_per_pap)
-    proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
-    proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
-    proj100=np.squeeze(np.dot(pca_compo[99],np.array(w_array).T))
-    ax.plot(proj1,proj2,proj100,lw=4)
+    w_ok =np.squeeze(np.array(w_array))
+    pca_w =pca.fit(w_ok).transform(w_ok)
+    ax.plot(pca_w[:,0],pca_w[:,1], pca_w[:,99], lw=4)#,c=np.linspace(0,100,len(pca_w[:,1])))
+
+
 
 ax.set_ylabel('test')
 ax.set_title('test2')
@@ -765,7 +738,7 @@ ax.set_ylabel('Y axis')
 ax.set_zlabel('Z axis')
 # ax.set_xlim([-.2,.2])
 # ax.set_ylim([-.2,.2])
-ax.set_zlim([-.1,.1])
+# ax.set_zlim([-.1,.1])
 plt.grid(True)
 # ax.xaxis.set_ticklabels([])
 # ax.xaxis.set_ticks_position('none')
@@ -781,45 +754,59 @@ plt.show()
 test=np.squeeze(r_array)
 pca=PCA(n_components=3)
 pca_test =pca.fit(test).transform(test)
-
-
-plt.figure()
-colors = ['navy', 'turquoise', 'darkorange']
-lw = 2
-
-plt.scatter(pca_test[0:100,0], pca_test[0:100,1], c=np.linspace(0,10,100), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
-plt.scatter(pca_test[100:1500,0], pca_test[100:1500,1], c=np.linspace(0,10,1400), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
-plt.clf()
-plt.scatter(pca_test[1500:2000,0], pca_test[1500:2000,1], c=np.linspace(0,10,500), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
 #%% PCA on r better
+w_5, r_5 =simul_weight_pca(6000,100,4000, f_per_pap)
+
+last_w=w_5[-1]
 n_comp=10
-r_array=np.squeeze(np.array(r))
+r_array=np.squeeze(np.array(r_5))
 pca=PCA(n_components=n_comp)
-pca_full =pca.fit(r_array[8000:10000,:])
+
+pca_full =pca.fit(r_array[4000:6000,:])
 pca_compo = pca_full.components_
 
 projections = list()
-for i in range(n_comp):
-    projections.append(np.dot(pca_compo[i],r_array[8000:10000,:].T))
-    plt.plot(projections[i], alpha=.3)
+proj2=list()
+for i in range(10):
+    projections.append(pca_compo[i]*r_array[4000:6000,:])
+    proj2.append(np.dot(projections[i],last_w))
+    plt.plot(proj2[i], alpha=.3)
 
 
-plt.plot(sum(projections))
+plt.plot(np.sum(proj2[i],1), lw=4)
+plt.plot(ts[4000:6000]/10, lw=4)
+
 
 cumul=list()
 for i in range(n_comp):
     cumul.append(sum(pca_full.explained_variance_ratio_[:i])*100)
 plt.plot(cumul)
 
+
+# #%% PCA on r better
+# w_5, r_5 =simul_weight_pca(6000,100,4000, f_per_pap)
+
+# last_w=w_5[-1]
+# n_comp=10
+# r_array=np.squeeze(np.array(r_5))
+# pca=PCA(n_components=n_comp)
+# # pca_full =pca.fit(r_array[4000:6000,:])
+# # pca_compo = pca_full.components_
+
+
+# pca_projections =pca.fit(r_array[4000:6000,:]).transform(r_array[4000:6000,:])
+
+# plt.plot(pca_projections, alpha=.3)
+
+
+# plt.plot(np.sum(pca_projections,1), lw=4)
+# plt.plot(ts[4000:6000]*10, lw=4)
+
+# plt.plot(np.dot(pca_projections[:,0],last_w), alpha=.3)
+# cumul=list()
+# for i in range(n_comp):
+#     cumul.append(sum(pca_full.explained_variance_ratio_[:i])*100)
+# plt.plot(cumul)
 #%% 6) weights_for g test
 def simul_weight_g(time_ms, time_min, time_max, funct, gGG):
     #param for updating
