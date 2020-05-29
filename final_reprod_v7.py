@@ -116,17 +116,17 @@ def f_per_pap(time_ms):
     
 
 def f_triangle(time_ms):
-    ft= lambda x : np.abs(signal.sawtooth(x/40))*2-1
+    ft= lambda x : np.abs(signal.sawtooth(x/30))*2-1
     ts= ft(np.array(range(time_ms)))
     return ts
 
 def f_per(time_ms):
-    ft = lambda x : np.cos(x/80) + np.sin(x/20)*.5
+    ft = lambda x : np.cos(x/60) + np.sin(x/15)*.5
     ts= ft(np.array(range(time_ms)))
     return ts
 
 def f_per_comp (time_ms):
-    ft =  lambda x : np.cos(x/80) + np.cos(x/8)*.3 + np.sin(x/40)*.5+ np.cos(x/20)*.3
+    ft =  lambda x : np.cos(x/72) + np.cos(x/7)*.3 + np.sin(x/36)*.5+ np.cos(x/18)*.3
     ts= ft(np.array(range(time_ms)))
     return ts
 
@@ -161,15 +161,15 @@ def f_disco(time_ms):
     point=1
     for i in range(time_ms):
         ts.append(point)
-        if i%50==0:
+        if i%100==0:
             point=-point
     return ts
 
 #%% 6) weightsv2
 def simul_weight2(time_ms, time_min, time_max, funct):
     #param for updating
-    delta_up=10
-    alpha=1
+    delta_up=6
+    alpha=20
     P = np.identity(NGG)/alpha
     ts = funct(time_ms)
     JGg, JGz, w, indices_zero_w = generate()
@@ -248,8 +248,8 @@ def simul_weight2(time_ms, time_min, time_max, funct):
     plt.xlim([0,time_ms])
     plt.ylim([-2,2])
     plt.xticks([])
-    plt.axvline(time_min,c="black")
-    plt.axvline(time_max,c="black")
+    plt.axvline(time_min,c="black", lw=3, alpha=.3)
+    plt.axvline(time_max,c="black", lw=3, alpha=.3)
 
     plt.subplot2grid((4,1),(0,0),2,1)
     mat_activity_r = np.squeeze(np.array(r_array))
@@ -257,8 +257,8 @@ def simul_weight2(time_ms, time_min, time_max, funct):
     plt.ylabel('Firing rate (Hz)')
     plt.xlim([0,time_ms])
     plt.xticks([])
-    plt.axvline(time_min,c="black")
-    plt.axvline(time_max,c="black")
+    plt.axvline(time_min,c="black", lw=3, alpha=.3)
+    plt.axvline(time_max,c="black", lw=3, alpha=.3)
     
     plt.subplot2grid((4,1),(3,0),1,1)
     plt.plot(np.linspace(0,time_ms,len(e_m_array)), e_m_array, label='error')
@@ -268,8 +268,8 @@ def simul_weight2(time_ms, time_min, time_max, funct):
     plt.xlabel('Time (ms)')
     plt.ylabel('error')
     plt.xlim([0,time_ms])
-    plt.axvline(time_min,c="black")
-    plt.axvline(time_max,c="black")
+    plt.axvline(time_min,c="black", lw=3, alpha=.3)
+    plt.axvline(time_max,c="black", lw=3, alpha=.3)
     plt.legend(loc='best')    
 
 
@@ -416,30 +416,6 @@ def simul_weight4(time_ms, time_min, time_max,funct):
     plt.axvline(time_max)
     plt.legend(loc='best')    
 
-#%% PCA
-test=np.squeeze(r_array)
-pca=PCA(n_components=3)
-pca_test =pca.fit(test).transform(test)
-print('explained variance ratio (first two components): %s'
-      % str(pca.explained_variance_ratio_))
-
-plt.figure()
-colors = ['navy', 'turquoise', 'darkorange']
-lw = 2
-
-
-plt.scatter(pca_test[0:100,0], pca_test[0:100,1], c=np.linspace(0,10,100), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
-plt.scatter(pca_test[100:1500,0], pca_test[100:1500,1], c=np.linspace(0,10,1400), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
-plt.clf()
-plt.scatter(pca_test[1500:2000,0], pca_test[1500:2000,1], c=np.linspace(0,10,500), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
 
 #%% 6) weightsv5 double readout
 def simul_weight_2read(time_ms, time_min, time_max, funct1,funct2):
@@ -497,6 +473,7 @@ def simul_weight_2read(time_ms, time_min, time_max, funct1,funct2):
     dx_array.append(dx[:10])
     
     #loop
+    alternance =1
     for t in range(len(time)-1):
         dx = (-x + np.dot(gGG*JGg, r) +gGz*JGz*readout+gGz*JGz2*readout2)/tau
         x= x + dx*delta_t
@@ -512,6 +489,9 @@ def simul_weight_2read(time_ms, time_min, time_max, funct1,funct2):
     
         if t%100 ==0:
             print(int(t), 'ms')
+            alternance=-alternance        
+        if t%452==0:
+            alternance=-alternance
         
         #update weights between t_min and t_max
         if t%delta_up ==0:
@@ -525,21 +505,21 @@ def simul_weight_2read(time_ms, time_min, time_max, funct1,funct2):
                 wup=0
                 e_p=0
             else:            
+                if alternance ==1:
+                    P = P - np.dot(np.dot(P,r), np.dot(r.T,P))/(1+float(np.dot(np.dot(r.T,P),r)))
+                    e_m = np.dot(w.T,r) - ts[t]
+                    w = w - e_m * np.dot(P,r)
+                else:                
+                    P2 = P2 - np.dot(np.dot(P2,r), np.dot(r.T,P2))/(1+float(np.dot(np.dot(r.T,P2),r)))
+                    e_m2 = np.dot(w2.T,r) - ts2[t]
+                    w2 = w2 - e_m2 * np.dot(P2,r)
 
-                P = P - np.dot(np.dot(P,r), np.dot(r.T,P))/(1+float(np.dot(np.dot(r.T,P),r)))
-                e_p = np.dot(w.T,r) - ts[t]
-                e_m = np.dot(w.T,r) - ts[t]
                 
-                P2 = P2 - np.dot(np.dot(P2,r), np.dot(r.T,P2))/(1+float(np.dot(np.dot(r.T,P2),r)))
-                e_m2 = np.dot(w2.T,r) - ts2[t]
-                w2 = w2 - e_m2 * np.dot(P2,r)
-
-                w = w - e_m * np.dot(P,r)
-                wup=np.linalg.norm(e_m * np.dot(P,r))
+                #wup=np.linalg.norm(e_m * np.dot(P,r))
                 #w[indices_zero_w[:]]= 0
             e_p_array.append(float(e_p))
             e_m_array.append(float(e_m))
-            wup_array.append(float(wup))
+            #wup_array.append(float(wup))
             # wn_array.append(float(np.sqrt(np.dot(w.T,w))))
                     #update weights between t_min and t_max
 
@@ -574,7 +554,7 @@ def simul_weight_2read(time_ms, time_min, time_max, funct1,funct2):
     
     plt.subplot2grid((5,1),(3,0),1,1)
     plt.plot(np.linspace(0,time_ms,len(e_m_array)), e_m_array, label='error')
-    plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wup_array)*10, label='update ')
+    #plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wup_array)*10, label='update ')
     #plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(e_p_array)*10, label='error_p')
     #plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wn_array), label='w norm')
     plt.xlabel('Time (ms)')
@@ -622,7 +602,6 @@ def simul_weight_pca(time_ms, time_min, time_max, funct):
     
     x=.5*np.random.normal(0, 1, NGG)[np.newaxis].T #make it vertical
     r=np.tanh(x)
-    plt.hist(r)
     
     time=np.linspace(0,time_ms,time_ms) #10 000dt = 1000ms = 1s
     
@@ -679,82 +658,150 @@ def simul_weight_pca(time_ms, time_min, time_max, funct):
 
         
 
-    #plot
-#    offset
-    offset=np.array([(np.linspace(0,18,10)) for i in range(time_ms)])
-    # plt.subplot(4,1,1)
-    # mat_activity = np.squeeze(np.asarray(x_time_array))
-    # plt.plot(time[:], mat_activity+offset)
-    # plt.ylabel('membrane potential x')
-    # plt.xlim([0,time_ms])
-    # plt.axvline(time_min,c="black")
-    # plt.axvline(time_max,c="black")
-    plt.subplot2grid((4,1),(2,0),1,1)
-    plt.plot(time[:],np.squeeze(readout_array[:]))
-    plt.plot(time[:], ts[:])
-    plt.ylabel('Readout')
-    plt.xlim([0,time_ms])
-    plt.ylim([-2,2])
-    plt.xticks([])
-    plt.axvline(time_min,c="black")
-    plt.axvline(time_max,c="black")
+#     #plot
+# #    offset
+#     offset=np.array([(np.linspace(0,18,10)) for i in range(time_ms)])
+#     # plt.subplot(4,1,1)
+#     # mat_activity = np.squeeze(np.asarray(x_time_array))
+#     # plt.plot(time[:], mat_activity+offset)
+#     # plt.ylabel('membrane potential x')
+#     # plt.xlim([0,time_ms])
+#     # plt.axvline(time_min,c="black")
+#     # plt.axvline(time_max,c="black")
+#     plt.subplot2grid((4,1),(2,0),1,1)
+#     plt.plot(time[:],np.squeeze(readout_array[:]))
+#     plt.plot(time[:], ts[:])
+#     plt.ylabel('Readout')
+#     plt.xlim([0,time_ms])
+#     plt.ylim([-2,2])
+#     plt.xticks([])
+#     plt.axvline(time_min,c="black")
+#     plt.axvline(time_max,c="black")
 
-    # plt.subplot2grid((4,1),(0,0),2,1)
-    # mat_activity_r = np.squeeze(np.array(r_array[10,:]))
-    # plt.plot(time[:], mat_activity_r+offset)
-    # plt.ylabel('Firing rate (Hz)')
-    # plt.xlim([0,time_ms])
-    # plt.xticks([])
-    # plt.axvline(time_min,c="black")
-    # plt.axvline(time_max,c="black")
+#     # plt.subplot2grid((4,1),(0,0),2,1)
+#     # mat_activity_r = np.squeeze(np.array(r_array[10,:]))
+#     # plt.plot(time[:], mat_activity_r+offset)
+#     # plt.ylabel('Firing rate (Hz)')
+#     # plt.xlim([0,time_ms])
+#     # plt.xticks([])
+#     # plt.axvline(time_min,c="black")
+#     # plt.axvline(time_max,c="black")
     
-    plt.subplot2grid((4,1),(3,0),1,1)
-    plt.plot(np.linspace(0,time_ms,len(e_m_array)), e_m_array, label='error')
-    plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wup_array)*10, label='update ')
-    #plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(e_p_array)*10, label='error_p')
-    plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wn_array), label='w norm')
-    plt.xlabel('Time (ms)')
-    plt.ylabel('error')
-    plt.xlim([0,time_ms])
-    plt.axvline(time_min,c="black")
-    plt.axvline(time_max,c="black")
-    plt.legend(loc='best')    
+#     plt.subplot2grid((4,1),(3,0),1,1)
+#     plt.plot(np.linspace(0,time_ms,len(e_m_array)), e_m_array, label='error')
+#     plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wup_array)*10, label='update ')
+#     #plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(e_p_array)*10, label='error_p')
+#     plt.plot(np.linspace(0,time_ms,len(e_m_array)), np.array(wn_array), label='w norm')
+#     plt.xlabel('Time (ms)')
+#     plt.ylabel('error')
+#     plt.xlim([0,time_ms])
+#     plt.axvline(time_min,c="black")
+#     plt.axvline(time_max,c="black")
+#     plt.legend(loc='best')    
 
     return w_array, r_array
 
 #%% PCA w
+w_array, r_array =simul_weight_pca(5000,100,4000, f_per_pap)
+
 n_comp=100
-test=np.squeeze(w)
+test=np.squeeze(w_array)
 pca=PCA(n_components=n_comp)
 pca_full =pca.fit(test)
+
 pca_compo = pca_full.components_
 pca_w =pca.fit(test).transform(test)
 
-print('explained variance ratio (first two components): %s'
-      % str(pca.explained_variance_ratio_))
-
-plt.figure()
-colors = ['navy', 'turquoise', 'darkorange']
-lw = 2
-
-
-plt.scatter(pca_w[:,0], pca_w[:,1], c=np.linspace(0,10,989), alpha=.8, lw=lw)
-plt.legend(loc='best', shadow=False, scatterpoints=1)
-plt.title('PCA of IRIS dataset')
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,989))
+# plt.figure()
+# colors = ['navy', 'turquoise', 'darkorange']
+# lw = 2
+# plt.scatter(pca_w[:,0], pca_w[:,1], c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
+# proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
+# proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
+# plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
+# plt.legend(loc='best', shadow=False, scatterpoints=1)
+# plt.title('PCA of IRIS dataset')
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,len(pca_w[:,1])))
+# ax.scatter(pca_w[:,2],pca_w[:,1], pca_w[:,3],c=np.linspace(0,100,len(pca_w[:,1])))
 
 cumul=list()
 for i in range(n_comp):
     cumul.append(sum(pca_full.explained_variance_ratio_[:i])*100)
 plt.plot(cumul)
 
-#%% PCA activity post learning
-#%% PCA
-n_comp=10
+# loop
+plt.subplot(111, projection='3d')
+plt.scatter(pca_w[:,0],pca_w[:,1], pca_w[:,2],c=np.linspace(0,100,len(pca_w[:,1])))
 
+plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
+for i in range(3):
+    w_array, r_array =simul_weight_pca(5000,100,4000, f_per_pap)
+    proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
+    proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
+    plt.scatter(proj1,proj2, c=np.linspace(0,10,len(pca_w[:,1])), alpha=.8, lw=lw)
+plt.ylabel
+
+#%%
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+
+# Tweaking display region and labels
+ax.plot(pca_w[:,0],pca_w[:,1], pca_w[:,40], lw=4)#,c=np.linspace(0,100,len(pca_w[:,1])))
+
+for i in range(1):
+    w_array, r_array =simul_weight_pca(5000,100,4000, f_per_pap)
+    proj1=np.squeeze(np.dot(pca_compo[0],np.array(w_array).T))
+    proj2=np.squeeze(np.dot(pca_compo[1],np.array(w_array).T))
+    proj100=np.squeeze(np.dot(pca_compo[99],np.array(w_array).T))
+    ax.plot(proj1,proj2,proj100,lw=4)
+
+ax.set_ylabel('test')
+ax.set_title('test2')
+
+ax.set_xlabel('X axis')
+ax.set_ylabel('Y axis')
+ax.set_zlabel('Z axis')
+# ax.set_xlim([-.2,.2])
+# ax.set_ylim([-.2,.2])
+ax.set_zlim([-.1,.1])
+plt.grid(True)
+# ax.xaxis.set_ticklabels([])
+# ax.xaxis.set_ticks_position('none')
+# ax.yaxis.set_ticklabels([])
+# ax.yaxis.set_ticks_position('none')
+# ax.zaxis.set_ticklabels([])
+# ax.zaxis.set_ticks_position('none')
+plt.show()
+    
+
+#%% PCA activity post learning
+#%% PCA on r
+test=np.squeeze(r_array)
+pca=PCA(n_components=3)
+pca_test =pca.fit(test).transform(test)
+
+
+plt.figure()
+colors = ['navy', 'turquoise', 'darkorange']
+lw = 2
+
+plt.scatter(pca_test[0:100,0], pca_test[0:100,1], c=np.linspace(0,10,100), alpha=.8, lw=lw)
+plt.legend(loc='best', shadow=False, scatterpoints=1)
+plt.title('PCA of IRIS dataset')
+
+plt.scatter(pca_test[100:1500,0], pca_test[100:1500,1], c=np.linspace(0,10,1400), alpha=.8, lw=lw)
+plt.legend(loc='best', shadow=False, scatterpoints=1)
+plt.title('PCA of IRIS dataset')
+
+plt.clf()
+plt.scatter(pca_test[1500:2000,0], pca_test[1500:2000,1], c=np.linspace(0,10,500), alpha=.8, lw=lw)
+plt.legend(loc='best', shadow=False, scatterpoints=1)
+plt.title('PCA of IRIS dataset')
+
+#%% PCA on r better
+n_comp=10
 r_array=np.squeeze(np.array(r))
 pca=PCA(n_components=n_comp)
 pca_full =pca.fit(r_array[8000:10000,:])
@@ -951,6 +998,7 @@ for gGG in [.8,.9,1,1.1,1.2,1.3,1.4,1.5,1.56,1.6]:
 
 #%%
 import pandas as pd
+dtf=pd.read_csv('gGG_sim.csv')
 gGG_l=np.repeat([.8,.9,1,1.1,1.2,1.3,1.4,1.5,1.56,1.6], 10)
 l_time = (np.array(t_list)-400)/400
 wn_list=np.squeeze(np.array(wn_list))
